@@ -1,25 +1,4 @@
- with ftm_value as(
- SELECT   --ftm
-        'FTM' as chain,
-        fan.call_tx_hash as tx,   
-        usd_add,
-        sender,
-        case
-            when usd_add=0x2f6f07cdcf3588944bf4c42ac74ff24bf56e7590 --STG
-                then cast(value as double) / 1e18 * 0.84
-            else cast(value as double) / 1e6
-        end as token_amount
-    FROM layerzero_fantom_endpoint_fantom.Endpoint_call_send fan
-    LEFT JOIN (
-        SELECT contract_address as usd_add ,value, "from" as sender ,evt_tx_hash
-        from erc20_fantom.evt_Transfer
-        
-    ) fant ON fan.call_tx_hash = evt_tx_hash and _refundAddress=sender
-    WHERE call_success = true 
-    and (usd_add=0x04068DA6C83AFCFA0e13ba15A6696662335D5B75 --USDC
-    or usd_add=0x2f6f07cdcf3588944bf4c42ac74ff24bf56e7590)  --STG
-  
-    
+
     UNION ALL
     
     SELECT  --avax
