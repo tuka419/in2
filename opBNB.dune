@@ -1,0 +1,26 @@
+WITH  BNB_Price AS (
+SELECT  minute,
+       AVG(price) AS Price_bnb
+FROM prices.usd
+WHERE symbol = 'BNB'
+AND blockchain IS NULL
+GROUP BY 1),
+
+Bridged AS ( SELECT block_time, CAST(value AS DOUBLE)/1e18 AS Amount_BNB , "from" AS Address , tx_hash
+FROM bnb.traces
+WHERE to = 0xF05F0e4362859c3331Cb9395CBC201E3Fa6757Ea
+AND success = True AND (call_type NOT IN ('delegatecall', 'callcode', 'staticcall') OR call_type IS NULL) AND block_number >= 30758371 ),
+
+Add_Price AS (
+SELECT block_time, Amount_BNB, Address , Amount_BNB * Price_bnb AS Amount_USD , tx_hash
+FROM Bridged 
+LEFT JOIN BNB_Price ON date_trunc('minute', minute) = date_trunc('minute', block_time))
+  
+ SELECT date_trunc('day', block_time) AS hour, COUNT(tx_hash) AS Txns , SUM(COUNT(tx_hash)) OVER (ORDER BY date_trunc('day', block_time)) AS Cumulative_Tx
+ , SUM(Amount_BNB) AS Amount_BNB, SUM(SUM(Amount_BNB)) OVER (ORDER BY date_trunc('day', block_time)) AS Cumulative_BNB
+ , SUM(Amount_USD) AS Amount_USD, SUM(SUM(Amount_USD)) OVER (ORDER BY date_trunc('day', block_time)) AS Cumulative_USD
+ FROM Add_Price
+ WHERE date_trunc('day', block_time) >= CAST('2023-08-14 03:00' AS TIMESTAMP)
+ GROUP BY 1 
+ ORDER BY 1 DESC 
+  
